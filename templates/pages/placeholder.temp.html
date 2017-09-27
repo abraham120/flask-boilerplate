@@ -1,0 +1,77 @@
+{% extends 'layouts/main.html' %}
+{% block title %} Temperatur Monitor {% endblock %}
+
+{% block content %}
+
+<script type="text/javascript" src="/static/js/libs/jquery.canvasjs.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function(){
+        var limit = 100;
+        var x = 0, y = 0;
+        var data = [];
+        var dataSeries = { type: "line" };
+        var dataPoints = [];
+        var chart = new CanvasJS.Chart("chartContainer", {
+            title : {
+                text: "Temperature Monitor"
+            },
+            axisY: {
+                includeZero: false
+            },
+            animationEnabled: true,
+            data: [{
+                type: "line",
+                markerSize: 0,
+                dataPoints: dataPoints
+            }]
+        });
+        var socket = io.connect('http://' + document.domain + ':' + location.port + '/mon');
+        //var socket = new WebSocket("ws://" + document.localtion.host + "/ws");
+        //socket.onopen = function(){
+        //    console.log("connected");
+        //};
+        socket.on('connect', function() {
+            console.log("connected");
+            //dataSeries.dataPoints = dataPoints;
+            //data.push(dataSeries);
+        });
+        socket.on('data', function(msg) {
+            console.log('data: ' + x + ' ' + msg.temp);
+            dataPoints.push({x:x, y:msg.temp});
+            x++;
+            updateChart();
+        });
+
+        var sendMessage = function(message){
+            console.log("sending: " + message.data);
+            socket.emit('request', message);
+        };
+        $('#cmd_send').click(function(ev){
+            ev.preventDefault();
+            var cmd = $('#cmd_value').val() + '\r\n';
+            sendMessage({'data' : cmd});
+            $('#cmd_value').val("");
+        });
+        $('#clear').click(function(){
+            received.empty();
+        });
+
+        var updateChart = function () {
+            if (dataPoints.length > 100)
+            {
+                dataPoints.shift();
+            }
+            chart.render();
+        }
+
+        //updateChart();
+
+        setInterval(function(){sendMessage("")}, 5000);
+
+    });
+</script>
+
+<div id="chartContainer" style="height: 300px; width: 100%;"></div>
+
+{% endblock %}

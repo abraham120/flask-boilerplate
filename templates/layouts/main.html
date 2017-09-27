@@ -30,6 +30,11 @@
 
 <!-- scripts -->
 <script src="/static/js/libs/modernizr-2.8.2.min.js"></script>
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script type="text/javascript" src="/static/js/libs/jquery-1.11.1.min.js"><\/script>')</script>
+<script type="text/javascript" src="/static/js/libs/bootstrap-3.1.1.min.js" defer></script>
+<script type="text/javascript" src="/static/js/plugins.js" defer></script>
+<script type="text/javascript" src="/static/js/script.js" defer></script>
 <!--[if lt IE 9]><script src="/static/js/libs/respond-1.4.2.min.js"></script><![endif]-->
 <!-- /scripts -->
 
@@ -48,24 +53,17 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="/">Project name</a>
+          <a class="navbar-brand" href="/">V-RAPTOR BMC WEB UI</a>
         </div>
         <div class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            <li {% if request.endpoint == 'home' %} class="active" {% endif %}><a href="{{ url_for('home') }}">Home</a></li>
+            <li {% if request.endpoint == 'node' and node_number == '1' %} class="active" {% endif %}><a href="{{ url_for('node',node_number=1) }}">Node 1</a></li>
+            <li {% if request.endpoint == 'node' and node_number == '2' %} class="active" {% endif %}><a href="{{ url_for('node',node_number=2) }}">Node 2</a></li>
+            <li {% if request.endpoint == 'node' and node_number == '3' %} class="active" {% endif %}><a href="{{ url_for('node',node_number=3) }}">BMC</a></li>
+            <li {% if request.endpoint == 'tempmon' %} class="active" {% endif %}><a href="{{ url_for('tempmon') }}">TempMon</a></li>
+            <li {% if request.endpoint == 'power' %} class="active" {% endif %}><a href="{{ url_for('power') }}">Power</a></li>
+            <li {% if request.endpoint == 'terminal' %} class="active" {% endif %}><a href="{{ url_for('terminal') }}">Console</a></li>
             <li {% if request.endpoint == 'about' %} class="active" {% endif %}><a href="{{ url_for('about') }}">About</a></li>
-            <li class="dropdown">
-              <a class="dropdown-toggle" data-toggle="dropdown">Dropdown <b class="caret"></b></a>
-              <ul class="dropdown-menu">
-                <li><a>Action</a></li>
-                <li><a>Another action</a></li>
-                <li><a>Something else here</a></li>
-                <li class="divider"></li>
-                <li class="dropdown-header">Nav header</li>
-                <li><a>Separated link</a></li>
-                <li><a>One more separated link</a></li>
-              </ul>
-            </li>
           </ul>
           <ul class="nav navbar-nav pull-right">
             <li><a href="{{ url_for('register') }}">Signup</a></li>
@@ -97,16 +95,11 @@
 
   <div id="footer">
     <div class="container">
-      <p>Your Company &copy; All Rights Reserved.</p>
+      <p>XS Lab &copy; All Rights Reserved.</p>
       {% block footer %}{% endblock %}
     </div>
   </div>
 
-  <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-  <script>window.jQuery || document.write('<script type="text/javascript" src="/static/js/libs/jquery-1.11.1.min.js"><\/script>')</script>
-  <script type="text/javascript" src="/static/js/libs/bootstrap-3.1.1.min.js" defer></script>
-  <script type="text/javascript" src="/static/js/plugins.js" defer></script>
-  <script type="text/javascript" src="/static/js/script.js" defer></script>
   <!-- Google Analytics - Change UA-XXXXX-X to be your site's ID -->
   <script>
   window._gaq = [['_setAccount','UAXXXXXXXX1'],['_trackPageview'],['_trackPageLoadTime']];

@@ -1,0 +1,55 @@
+{% extends 'layouts/main.html' %}
+{% block title %} Serial Console {% endblock %}
+
+{% block content %}
+
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function(){
+        var received = $('#received');
+        var socket = io.connect('http://' + document.domain + ':' + location.port + '/ws');
+        //var socket = new WebSocket("ws://" + document.localtion.host + "/ws");
+        //socket.onopen = function(){
+        //    console.log("connected");
+        //};
+        socket.on('connect', function() {
+            console.log("connected");
+        });
+        socket.on('response', function(msg) {
+            console.log('response: ' + msg.data);
+            received.append(msg.data);
+            received.append($('<br/>'));
+        });
+
+        var sendMessage = function(message){
+            console.log("sending: " + message.data);
+            socket.emit('request', message);
+        };
+        $('#cmd_send').click(function(ev){
+            ev.preventDefault();
+            var cmd = $('#cmd_value').val() + '\r\n';
+            sendMessage({'data' : cmd});
+            $('#cmd_value').val("");
+        });
+        $('#clear').click(function(){
+            received.empty();
+        });
+    });
+</script>
+<style>
+  #received { width: 500px; height: 400px; border: 1px solid #dedede; overflow-y:scroll;}
+  #sent { width: 500px; }
+</style>
+<div class="page-header">
+  <h2>Serial Console</h2>
+</div>
+<div id="received">
+</div>
+<button id="clear">Clear</button>
+<p>Send data to serial port</p>
+<form id="sent">
+  <input type="text" id="cmd_value">
+  <button id="cmd_send">Send</button>
+</form>
+
+{% endblock %}

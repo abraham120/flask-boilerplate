@@ -1,0 +1,17 @@
+{% extends 'layouts/main.html' %}
+{% block title %} Power Control {% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h2>Current Power Status : {{ status }}</h2>
+</div>
+<div class="btn-groups">
+  <form action="" method=post>
+    <input type="submit" name=power class="btn btn-primary" value="Power On"></input>
+    <input type="submit" name=power class="btn btn-info" value="Power Off"></input>
+    <input type="submit" name=power class="btn btn-danger" value="Power Force Off"></input>
+    <input type="submit" name=power class="btn" value="Page Refresh"></input>
+  </form>
+</div>
+
+{% endblock %}
