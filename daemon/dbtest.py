@@ -11,6 +11,7 @@ def connect(user, password, db, host='localhost', port=5432):
 
 engine = connect('sensor_log', 'sensor1234', 'sensor_log')
 
+engine.execute('create table if not exists test(time timestamptz not null, temp double precision null)')
 pd.read_sql("select * from test limit 1", engine)
 
 insert_cmd = 'insert into test(time, temp) values (now(), {});'
