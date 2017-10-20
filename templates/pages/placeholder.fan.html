@@ -1,0 +1,169 @@
+{% extends 'layouts/main.html' %}
+{% block title %} FAN Control {% endblock %}
+
+{% block content %}
+
+<script type="text/javascript" src="/static/js/libs/canvasjs.min.js"></script>
+<script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+    //$(document).ready(function(){
+    window.onload = function() {
+        var limit = 100;
+        var x = 0, y = 0;
+        var data = [];
+        var dataSeries = { type: "line" };
+        var dataPoints = [ 
+            { x: 1, y: 100, label: 'FAN1' },
+            { x: 2, y: 100, label: 'FAN2' },
+            { x: 3, y: 100, label: 'FAN3' },
+            { x: 4, y: 100, label: 'FAN4' },
+            { x: 5, y: 100, label: 'FAN5' },
+            { x: 6, y: 100, label: 'FAN6' },
+        ];
+        var currentRpmData = [
+            { x: 1, y: 100, label: 'FAN1' },
+            { x: 2, y: 100, label: 'FAN2' },
+            { x: 3, y: 100, label: 'FAN3' },
+            { x: 4, y: 100, label: 'FAN4' },
+            { x: 5, y: 100, label: 'FAN5' },
+            { x: 6, y: 100, label: 'FAN6' },
+        ];
+
+        var chart = new CanvasJS.Chart("chartContainer", {
+            title : {
+                text: "FAN Control"
+            },
+            axisY: {
+                minimum: 0,
+                maximum: 255
+            },
+            animationEnabled: true,
+            data: [{
+                type: "column",
+                dataPoints: dataPoints
+            }]
+        });
+        var rpmChart = new CanvasJS.Chart("rpmChartContainer", {
+            title : {
+                text: "Current RPM"
+            },
+            axisY: {
+                minimum: 0,
+                maximum: 15000
+            },
+            animationEnabled: true,
+            data: [{
+                type: "column",
+                dataPoints: currentRpmData
+            }]
+        });
+        var socket = io.connect('http://' + document.domain + ':' + location.port + '/fan');
+        socket.on('connect', function() {
+            console.log("connected");
+        });
+        socket.on('data', function(msg) {
+            //console.log('data: ' + x + ' ' + msg.temp);
+            dataPoints[msg.fanid-1] = {x: msg.fanid, y: msg.value, label: 'FAN'+(msg.fanid)};
+            chart.render();
+        });
+        socket.on('rpmData', function(msg) {
+            currentRpmData[msg.fanid-1] = {x: msg.fanid, y: msg.rpm, label: 'FAN'+(msg.fanid)};
+            rpmChart.render();
+        });
+
+        // idx: 0~5
+        var setFanPwm = function(idx,val){
+            //console.log("sending: " + message.data);
+            socket.emit('request', {'fanid':idx,'pwm':val});
+        };
+
+        chart.render();
+        rpmChart.render();
+
+        //setInterval(function(){sendMessage("")}, 5000);
+        var xSnapDistance = chart.axisX[0].convertPixelToValue(chart.get("dataPointWidth")) / 2;
+        var ySnapDistance = 3;
+
+        var xValue, yValue;
+
+        var mouseDown = false;
+        var selected = null;
+        var changeCursor = false;
+
+        var timerId = null;
+
+        function getPosition(e) {
+            var parentOffset = $("#chartContainer > .canvasjs-chart-container").offset();           
+            var relX = e.pageX - parentOffset.left;
+            var relY = e.pageY - parentOffset.top;
+            xValue = Math.round(chart.axisX[0].convertPixelToValue(relX));
+            yValue = Math.round(chart.axisY[0].convertPixelToValue(relY));
+            if (yValue < 0) yValue = 0;
+            if (yValue > 255) yValue = 255;
+        }
+
+        function searchDataPoint() {
+                var dps = chart.data[0].dataPoints;
+                for(var i = 0; i < dps.length; i++ ) {
+                        if( (xValue >= dps[i].x - xSnapDistance && xValue <= dps[i].x + xSnapDistance))
+// && (yValue >= dps[i].y - ySnapDistance && yValue <= dps[i].y + ySnapDistance) ) 
+                        {
+                                if(mouseDown) {
+                                        selected = i;
+                                        break;
+                                } else {
+                                        changeCursor = true;
+                                        break; 
+                                }
+                        } else {
+                                selected = null;
+                                changeCursor = false;
+                        }
+                }
+        }
+
+        jQuery("#chartContainer > .canvasjs-chart-container").on({
+                mousedown: function(e) {
+                        mouseDown = true;
+                        getPosition(e);  
+                        searchDataPoint();
+                },
+                mousemove: function(e) {
+                        getPosition(e);
+                        if(mouseDown) {
+                                clearTimeout(timerId);
+                                timerId = setTimeout(function(){
+                                        if(selected != null) {
+                                                chart.data[0].dataPoints[selected].y = yValue;
+                                                chart.render();
+                                        }   
+                                }, 0);
+                        }
+                        else {
+                                searchDataPoint();
+                                if(changeCursor) {
+                                        chart.data[0].set("cursor", "n-resize");
+                                } else {
+                                        chart.data[0].set("cursor", "default");
+                                }
+                        }
+                },
+                mouseup: function(e) {
+                        if(selected != null) {
+                                chart.data[0].dataPoints[selected].y = yValue;
+                                chart.render();
+                                mouseDown = false;
+                                setFanPwm(selected, yValue);
+                        }
+                }
+        });
+        setInterval(function(){socket.emit('rpmRequest',{});}, 1000);
+    }
+   // });
+</script>
+
+<div id="chartContainer" style="height: 370px; width: 100%;"></div>
+<br>
+<div id="rpmChartContainer" style="height: 370px; width: 100%;"></div>
+
+{% endblock %}

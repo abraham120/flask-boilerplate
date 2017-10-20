@@ -30,8 +30,8 @@
 
 <!-- scripts -->
 <script src="/static/js/libs/modernizr-2.8.2.min.js"></script>
-<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-<script>window.jQuery || document.write('<script type="text/javascript" src="/static/js/libs/jquery-1.11.1.min.js"><\/script>')</script>
+<script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script type="text/javascript" src="/static/js/libs/jquery-3.1.1.min.js"><\/script>')</script>
 <script type="text/javascript" src="/static/js/libs/bootstrap-3.1.1.min.js" defer></script>
 <script type="text/javascript" src="/static/js/plugins.js" defer></script>
 <script type="text/javascript" src="/static/js/script.js" defer></script>
@@ -61,9 +61,9 @@
             <li {% if request.endpoint == 'node' and node_number == '2' %} class="active" {% endif %}><a href="{{ url_for('node',node_number=2) }}">Node 2</a></li>
             <li {% if request.endpoint == 'node' and node_number == '3' %} class="active" {% endif %}><a href="{{ url_for('node',node_number=3) }}">BMC</a></li>
             <li {% if request.endpoint == 'tempmon' %} class="active" {% endif %}><a href="{{ url_for('tempmon') }}">TempMon</a></li>
+            <li {% if request.endpoint == 'fanctrl' %} class="active" {% endif %}><a href="{{ url_for('fanctrl') }}">FanControl</a></li>
             <li {% if request.endpoint == 'power' %} class="active" {% endif %}><a href="{{ url_for('power') }}">Power</a></li>
             <li {% if request.endpoint == 'terminal' %} class="active" {% endif %}><a href="{{ url_for('terminal') }}">Console</a></li>
-            <li {% if request.endpoint == 'about' %} class="active" {% endif %}><a href="{{ url_for('about') }}">About</a></li>
           </ul>
           <ul class="nav navbar-nav pull-right">
             <li><a href="{{ url_for('register') }}">Signup</a></li>

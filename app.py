@@ -74,6 +74,30 @@ def runPowerTool(args):
     fd.close()
     return data
 
+def initFanPwmMode():
+    for i in range(6):
+        fd = open('/sys/class/hwmon/hwmon4/pwm'+str(i+1)+'_enable','w')
+        fd.write('1')
+        fd.close()
+        setFanPwm(i,50)
+
+def getFanPwm(fanid):
+    fd = open('/sys/class/hwmon/hwmon4/pwm'+str(fanid+1),'r')
+    data = fd.read()
+    fd.close()
+    return int(data)
+
+def setFanPwm(fanid,pwm):
+    fd = open('/sys/class/hwmon/hwmon4/pwm'+str(fanid+1),'w')
+    fd.write(str(pwm))
+    fd.close()
+
+def getFanRpm(fanid):
+    fd = open('/sys/class/hwmon/hwmon4/fan'+str(fanid+1)+'_input','r')
+    data = fd.read()
+    fd.close()
+    return int(data)
+
 @app.route('/')
 def home():
     return render_template('pages/placeholder.home.html', node_name='Node 1')
@@ -106,7 +130,7 @@ def power():
             print('power force off')
             runPowerTool(['poweroff','force'])
 
-    status = runPowerTool(['status'])
+    status = runPowerTool(['status','2'])
     status = status.split(':')[1]
 
     return render_template('pages/placeholder.power.html', status=status)
@@ -114,6 +138,10 @@ def power():
 @app.route('/tempmon')
 def tempmon():
     return render_template('pages/placeholder.temp.html')
+
+@app.route('/fanctrl')
+def fanctrl():
+    return render_template('pages/placeholder.fan.html')
 
 @app.route('/terminal')
 def terminal():
@@ -169,6 +197,33 @@ if not app.debug:
     app.logger.addHandler(file_handler)
     app.logger.info('errors')
 
+@socketio.on('connect', namespace='/fan')
+def connect():
+    print("fan-ws: connected")
+# send all of data
+    for i in range(6):
+        pwm = getFanPwm(i)
+        socketio.emit("data", {'fanid':i+1,'value':pwm}, namespace='/fan')
+        rpm = getFanRpm(i)
+        socketio.emit("rpmData", {'fanid':i+1,'rpm':rpm}, namespace='/fan')
+        
+
+@socketio.on('disconnect', namespace='/fan')
+def disconnect():
+    print("fan-ws: disconnected")
+
+@socketio.on('request', namespace='/fan')
+def request_mon(message):
+    print("fan-ws: request")
+    setFanPwm(message['fanid'], message['pwm'])
+
+@socketio.on('rpmRequest', namespace='/fan')
+def request_mon(message):
+    print("fan-ws: rpm request")
+    for i in range(6):
+        rpm = getFanRpm(i)
+        socketio.emit("rpmData", {'fanid':i+1,'rpm':rpm}, namespace='/fan')
+
 @socketio.on('connect', namespace='/mon')
 def connect():
     global db_engine
@@ -188,7 +243,7 @@ def disconnect():
     print("mon-ws: disconnected")
 
 @socketio.on('request', namespace='/mon')
-def request(message):
+def request_mon(message):
     print("mon-ws: request")
     db_data = pandas.read_sql('select * from test order by time desc limit 1', db_engine)
     socketio.emit("data", {'temp':db_data.temp[0]}, namespace='/mon')
@@ -202,7 +257,7 @@ def disconnect():
     print("websock: disconnected")
 
 @socketio.on('request', namespace='/ws')
-def request(message):
+def request_ws(message):
     print("websock: request: " + message['data'])
     input_queue.put(message['data'].encode("UTF-8"))
 
@@ -228,6 +283,9 @@ if __name__ == '__main__':
     sp = serialworker.SerialProcess(input_queue, output_queue)
     sp.daemon = True
     sp.start()
+    
+    initFanPwmMode()
+    runPowerTool(['console_on','2'])
 
     socketio.run(app, host='0.0.0.0', port=5000, use_reloader=False)
 

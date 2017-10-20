@@ -15,6 +15,7 @@ engine.execute('create table if not exists test(time timestamptz not null, temp 
 pd.read_sql("select * from test limit 1", engine)
 
 insert_cmd = 'insert into test(time, temp) values (now(), {});'
+delete_cmd = "delete from test where age(now(),time) >= interval '2 hour';"
 
 while (True):
     f = open("/sys/class/hwmon/hwmon1/temp2_input", 'r')
@@ -23,4 +24,5 @@ while (True):
     sql_cmd = insert_cmd.format(float(temp)/1000)
     engine.execute(sql_cmd)
     time.sleep(5)
+    engine.execute(delete_cmd)
 
