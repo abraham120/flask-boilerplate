@@ -3,8 +3,8 @@ import time
 import multiprocessing
 
 ## Change this to match your local settings
-##SERIAL_PORT = '/dev/ttymxc0'	## node1
-SERIAL_PORT = '/dev/ttymxc1'	## node2
+SERIAL_PORT = '/dev/ttymxc0'	## node1
+#SERIAL_PORT = '/dev/ttymxc1'	## node2
 SERIAL_BAUDRATE = 115200
 
 class SerialProcess(multiprocessing.Process):
@@ -23,26 +23,31 @@ class SerialProcess(multiprocessing.Process):
         # time.sleep(1)
         
     def readSerial(self):
-        return self.sp.readline().replace("\n", "")
+        return self.sp.read()
  
     def run(self):
  
     	self.sp.flushInput()
  
         while True:
-            time.sleep(0.01)
+            time.sleep(0.001)
             # look for incoming tornado request
             if not self.input_queue.empty():
                 data = self.input_queue.get()
  
                 # send it to the serial device
                 self.writeSerial(data)
-                print "writing to serial: " + data
  
+            data = ''
+            i = 0
             # look for incoming serial data
-            if (self.sp.inWaiting() > 0):
-            	data = self.readSerial()
-                print "reading from serial: " + data
+            waitlen = self.sp.inWaiting()
+            while (waitlen > 0 and i < 1024):
+            	data += self.sp.read(waitlen)
+            	i += waitlen
+                waitlen = self.sp.inWaiting()
+
+            if data is not '':
                 # send it back to tornado
             	self.output_queue.put(data)
 

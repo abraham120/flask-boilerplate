@@ -1,4 +1,5 @@
 #----------------------------------------------------------------------------#
+    
 # Imports
 #----------------------------------------------------------------------------#
 
@@ -36,6 +37,7 @@ app.secret_key = "secret"
 #db = SQLAlchemy(app)
 socketio = SocketIO(app)
 thread = None
+threadRunning = False
 sp = None
 db_engine = None
 # Automatically tear down SQLAlchemy.
@@ -145,10 +147,6 @@ def fanctrl():
 
 @app.route('/terminal')
 def terminal():
-    global thread
-    if thread is None:
-        thread = Thread(target=checkQueue)
-        thread.start()
     return render_template('pages/placeholder.console.html')
 
 
@@ -196,6 +194,28 @@ if not app.debug:
     file_handler.setLevel(logging.INFO)
     app.logger.addHandler(file_handler)
     app.logger.info('errors')
+
+@socketio.on('connect', namespace='/term')
+def connect():
+    global thread
+    global threadRunning
+    print('term-socket : connected')
+    if thread is None:
+        threadRunning = True
+        thread = Thread(target=checkQueue)
+        thread.start()
+
+@socketio.on('disconnect', namespace='/term')
+def disconnect():
+    global thread
+    global threadRunning
+    if thread is not None:
+        threadRunning = False
+        thread = None
+
+@socketio.on('input', namespace='/term')
+def term_input(message):
+    input_queue.put(message.encode("UTF-8"))
 
 @socketio.on('connect', namespace='/fan')
 def connect():
@@ -258,7 +278,6 @@ def disconnect():
 
 @socketio.on('request', namespace='/ws')
 def request_ws(message):
-    print("websock: request: " + message['data'])
     input_queue.put(message['data'].encode("UTF-8"))
 
 #----------------------------------------------------------------------------#
@@ -266,12 +285,13 @@ def request_ws(message):
 #----------------------------------------------------------------------------#
 
 def checkQueue():
-    while True:
-        time.sleep(0.01)
+    global threadRunning
+    while threadRunning:
+        time.sleep(0.001)
         if not output_queue.empty():
             message = output_queue.get()
-            print("send: " + message)
-            socketio.emit("response", {'data':message}, namespace='/ws')
+            #print("send: " + message)
+            socketio.emit("output", message, namespace='/term')
             eventlet.sleep(0)
         if not sp.is_alive():
             break
