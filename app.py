@@ -130,12 +130,13 @@ def power():
         elif power_control == 'Power Force Off':
             ''' power force off '''
             print('power force off')
-            runPowerTool(['poweroff','force'])
+            runPowerTool(['forceoff'])
 
-    status = runPowerTool(['status','2'])
-    status = status.split(':')[1]
+    status = runPowerTool(['status'])
+    status1 = status.split('\n')[0].split(':')[1]
+    status2 = status.split('\n')[1].split(':')[1]
 
-    return render_template('pages/placeholder.power.html', status=status)
+    return render_template('pages/placeholder.power.html', status1=status1, status2=status2)
 
 @app.route('/tempmon')
 def tempmon():
@@ -200,12 +201,30 @@ def connect():
     global thread
     global threadRunning
     print('term-socket : connected')
-    runPowerTool(['console_on','1'])
-    runPowerTool(['console_on','2'])
     if thread is None:
         threadRunning = True
         thread = Thread(target=checkQueue)
         thread.start()
+    result = runPowerTool(['consolestat'])
+    result1 = result.split('\n')[0].split(':')[1]
+    result2 = result.split('\n')[1].split(':')[1]
+    socketio.emit("setting", {'node1':result1, 'node2':result2}, namespace='/term')
+
+@socketio.on('setting', namespace='/term')
+def term_setup(message):
+    print(str(message['node']) + ":" + message['cmd'].encode("utf-8"));
+    n = message['node']
+    if n == 0 or n == 1:
+        node = str(n+1)
+        cmd = message['cmd'].encode("utf-8")
+        if cmd == 'on':
+            runPowerTool(['consoleon', node])
+        elif cmd == 'off':
+            runPowerTool(['consoleoff', node])
+    result = runPowerTool(['consolestat'])
+    result1 = result.split('\n')[0].split(':')[1]
+    result2 = result.split('\n')[1].split(':')[1]
+    socketio.emit("setting", {'node1':result1, 'node2':result2}, namespace='/term')
 
 @socketio.on('disconnect', namespace='/term')
 def disconnect():

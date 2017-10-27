@@ -69,6 +69,25 @@ socket.on('output', function(data) {
     term[data.node].io.writeUTF16(data.buf);
 });
 
+socket.on('setting', function(data) {
+    btn = document.getElementById('set_node1');
+    btn.textContent = data.node1.toUpperCase();
+    btn = document.getElementById('set_node2');
+    btn.textContent = data.node2.toUpperCase();
+}); 
+
+
 socket.on('disconnect', function() {
     console.log("Socket.io connection closed");
 });
+
+function console_setup(node) {
+    btn = document.getElementById('set_node'+(node+1));
+    if (btn.textContent.indexOf('OFF') != -1) {
+        cmd = 'on';
+    } else if (btn.textContent.indexOf('ON') != -1) {
+        cmd = 'off';
+    } else cmd = 'on';
+    socket.emit('setting', {node: node, cmd: cmd});
+}
+
