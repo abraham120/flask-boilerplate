@@ -28,8 +28,8 @@ import pandas
 # App Config.
 #----------------------------------------------------------------------------#
 
-input_queue = multiprocessing.Queue()
-output_queue = multiprocessing.Queue()
+input_queue = [multiprocessing.Queue(), multiprocessing.Queue()]
+output_queue = [multiprocessing.Queue(), multiprocessing.Queue()]
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -200,6 +200,8 @@ def connect():
     global thread
     global threadRunning
     print('term-socket : connected')
+    runPowerTool(['console_on','1'])
+    runPowerTool(['console_on','2'])
     if thread is None:
         threadRunning = True
         thread = Thread(target=checkQueue)
@@ -215,7 +217,8 @@ def disconnect():
 
 @socketio.on('input', namespace='/term')
 def term_input(message):
-    input_queue.put(message.encode("UTF-8"))
+    #print('input:' + str(message['node']) + message['data'].encode("utf-8"))
+    input_queue[message['node']].put(message['data'].encode("UTF-8"))
 
 @socketio.on('connect', namespace='/fan')
 def connect():
@@ -276,10 +279,6 @@ def connect():
 def disconnect():
     print("websock: disconnected")
 
-@socketio.on('request', namespace='/ws')
-def request_ws(message):
-    input_queue.put(message['data'].encode("UTF-8"))
-
 #----------------------------------------------------------------------------#
 # Launch.
 #----------------------------------------------------------------------------#
@@ -288,11 +287,12 @@ def checkQueue():
     global threadRunning
     while threadRunning:
         time.sleep(0.001)
-        if not output_queue.empty():
-            message = output_queue.get()
-            #print("send: " + message)
-            socketio.emit("output", message, namespace='/term')
-            eventlet.sleep(0)
+        for node in range(2):
+            if not output_queue[node].empty():
+                message = output_queue[node].get()
+                #print("send: " + message)
+                socketio.emit("output", {'node':node,'buf':message}, namespace='/term')
+                eventlet.sleep(0)
         if not sp.is_alive():
             break
 
@@ -305,7 +305,6 @@ if __name__ == '__main__':
     sp.start()
     
     initFanPwmMode()
-    runPowerTool(['console_on','2'])
 
     socketio.run(app, host='0.0.0.0', port=5000, use_reloader=False)
 

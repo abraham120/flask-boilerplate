@@ -8336,7 +8336,10 @@ hterm.ScrollPort.prototype.decorate = function(div) {
 
   this.iframe_ = div.ownerDocument.createElement('iframe');
   this.iframe_.style.cssText = (
-      'border: 0;' +
+      'border: 1px solid #cccccc;' +
+      '-moz-border-radius: 10px;' +
+      '-webkit-border-radius: 10px;' +
+      'border-radius: 10px;' +
       'height: 75%;' +
       'position: absolute;' +
       'width: 75%');
@@ -8355,8 +8358,8 @@ hterm.ScrollPort.prototype.decorate = function(div) {
   doc.body.style.cssText = (
       'margin: 0px;' +
       'padding: 0px;' +
-      'height: 75%;' +
-      'width: 75%;' +
+      'height: 100%;' +
+      'width: 100%;' +
       'overflow: hidden;' +
       '-webkit-user-select: none;' +
       '-moz-user-select: none;');
@@ -8380,7 +8383,7 @@ hterm.ScrollPort.prototype.decorate = function(div) {
   this.screen_.style.cssText = (
       'display: block;' +
       'font-family: monospace;' +
-      'font-size: 15px;' +
+      'font-size: 12px;' +
       'height: 100%;' +
       'overflow-y: scroll; overflow-x: hidden;' +
       'white-space: pre;' +
