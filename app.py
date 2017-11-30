@@ -76,29 +76,54 @@ def runPowerTool(args):
     fd.close()
     return data
 
-def initFanPwmMode():
+def setFanMode(mode):
     for i in range(6):
-        fd = open('/sys/class/hwmon/hwmon4/pwm'+str(i+1)+'_enable','w')
-        fd.write('1')
-        fd.close()
-        setFanPwm(i,50)
+        os.system('/usr/bin/sensortool 3 ' + str(21+i) + ' ' + str(mode))
+
+def getFanMode(fanid):
+    fd = subprocess.Popen(['/usr/bin/sensortool',str(3),str(21+fanid)],stdout=subprocess.PIPE).stdout
+    data = fd.read()
+    fd.close()
+    data = data.split(' ')
+    return int(data[2])
+    
+
+def initFanPwmMode():
+    setFanMode(1)
+    for i in range(6):
+        #fd = open('/sys/class/hwmon/hwmon4/pwm'+str(i+1)+'_enable','w')
+        #fd.write('1')
+        #fd.close()
+        os.system('/usr/bin/sensortool 3 ' + str(9+i) + ' 0')
+    for i in [0,1,4,5]:
+        os.system('/usr/bin/sensortool 3 ' + str(9+i) + ' 50')
+        #setFanPwm(i,50)
 
 def getFanPwm(fanid):
-    fd = open('/sys/class/hwmon/hwmon4/pwm'+str(fanid+1),'r')
+    #fd = open('/sys/class/hwmon/hwmon4/pwm'+str(fanid+1),'r')
+    fd = subprocess.Popen(['/usr/bin/sensortool',str(3),str(9+fanid)],stdout=subprocess.PIPE).stdout
     data = fd.read()
     fd.close()
-    return int(data)
+    data = data.split(' ')
+    return int(data[2])
 
 def setFanPwm(fanid,pwm):
-    fd = open('/sys/class/hwmon/hwmon4/pwm'+str(fanid+1),'w')
-    fd.write(str(pwm))
-    fd.close()
+    #fd = subprocess.Popen(['/usr/bin/sensortool',3,8+fanid,pwm],stdout=subprocess.PIPE).stdout
+    #fd = open('/sys/class/hwmon/hwmon4/pwm'+str(fanid+1),'w')
+    #fd.read(str(pwm))
+    #fd.close()
+    os.system('/usr/bin/sensortool 3 ' + str(9+fanid) + ' ' + str(pwm))
 
 def getFanRpm(fanid):
-    fd = open('/sys/class/hwmon/hwmon4/fan'+str(fanid+1)+'_input','r')
+    #fd = open('/sys/class/hwmon/hwmon4/fan'+str(fanid+1)+'_input','r')
+    fd = subprocess.Popen(['/usr/bin/sensortool',str(3),str(3+fanid)],stdout=subprocess.PIPE).stdout
     data = fd.read()
+    data = data.split(' ')
     fd.close()
-    return int(data)
+    return int(data[2])
+
+def setFanRpm(fanid,rpm):
+    os.system('/usr/bin/sensortool 3 ' + str(15+fanid) + ' ' + str(rpm))
 
 @app.route('/')
 def home():
@@ -248,7 +273,12 @@ def connect():
         socketio.emit("data", {'fanid':i+1,'value':pwm}, namespace='/fan')
         rpm = getFanRpm(i)
         socketio.emit("rpmData", {'fanid':i+1,'rpm':rpm}, namespace='/fan')
-        
+    mode = getFanMode(0)
+    if (mode == 2):
+        mode = 'on'
+    else:
+        mode = 'off'
+    socketio.emit("fanmode", {'mode':mode}, namespace='/fan')
 
 @socketio.on('disconnect', namespace='/fan')
 def disconnect():
@@ -265,6 +295,17 @@ def request_mon(message):
     for i in range(6):
         rpm = getFanRpm(i)
         socketio.emit("rpmData", {'fanid':i+1,'rpm':rpm}, namespace='/fan')
+
+@socketio.on('fanmode_toggle', namespace='/fan')
+def fanmode_toggle(message):
+    mode = getFanMode(0)
+    if (mode == 2):
+        setFanMode(1)
+        mode = 'off'
+    else:
+        setFanMode(2)
+        mode = 'on'
+    socketio.emit("fanmode", {'mode':mode}, namespace='/fan')
 
 @socketio.on('connect', namespace='/mon')
 def connect():

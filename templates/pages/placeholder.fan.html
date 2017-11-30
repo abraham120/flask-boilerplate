@@ -6,6 +6,12 @@
 <script type="text/javascript" src="/static/js/libs/canvasjs.min.js"></script>
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
 <script type="text/javascript" charset="utf-8">
+    var socket;
+    
+	function fanmode_toggle() {
+		socket.emit('fanmode_toggle', null);
+	}
+
     //$(document).ready(function(){
     window.onload = function() {
         var limit = 100;
@@ -57,7 +63,7 @@
                 dataPoints: currentRpmData
             }]
         });
-        var socket = io.connect('http://' + document.domain + ':' + location.port + '/fan');
+        socket = io.connect('http://' + document.domain + ':' + location.port + '/fan');
         socket.on('connect', function() {
             console.log("connected");
         });
@@ -70,6 +76,10 @@
             currentRpmData[msg.fanid-1] = {x: msg.fanid, y: msg.rpm, label: 'FAN'+(msg.fanid)};
             rpmChart.render();
         });
+	socket.on('fanmode', function(msg) {
+		btn = document.getElementById("set_fan_mode");
+		btn.textContent = msg.mode.toUpperCase();
+	});
 
         // idx: 0~5
         var setFanPwm = function(idx,val){
@@ -122,6 +132,7 @@
                 }
         }
 
+
         jQuery("#chartContainer > .canvasjs-chart-container").on({
                 mousedown: function(e) {
                         mouseDown = true;
@@ -161,7 +172,7 @@
     }
    // });
 </script>
-
+Auto Control <button id="set_fan_mode" type="button" class="btn btn-primary" onclick="fanmode_toggle();">ON</button><br>
 <div id="chartContainer" style="height: 370px; width: 100%;"></div>
 <br>
 <div id="rpmChartContainer" style="height: 370px; width: 100%;"></div>
