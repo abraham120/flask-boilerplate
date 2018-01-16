@@ -9,12 +9,14 @@
     $(document).ready(function(){
         var limit = 100;
         var x = 0, y = 0;
-        var data = [];
+        var dataBMC = [];
+        var dataNODE1 = [];
         var dataSeries = { type: "line" };
-        var dataPoints = [];
-        var chart = new CanvasJS.Chart("chartContainer", {
+        var dataPointsBMC = [];
+        var dataPointsNODE1 = [];
+        var chartBMC = new CanvasJS.Chart("chartContainerBMC", {
             title : {
-                text: "Temperature Monitor"
+                text: "Temperature Monitor (BMC)"
             },
             axisY: {
                 includeZero: false
@@ -23,7 +25,21 @@
             data: [{
                 type: "line",
                 markerSize: 0,
-                dataPoints: dataPoints
+                dataPoints: dataPointsBMC
+            }]
+        });
+        var chartNODE1 = new CanvasJS.Chart("chartContainerNODE1", {
+            title : {
+                text: "Temperature Monitor (NODE1)"
+            },
+            axisY: {
+                includeZero: false
+            },
+            animationEnabled: true,
+            data: [{
+                type: "line",
+                markerSize: 0,
+                dataPoints: dataPointsNODE1
             }]
         });
         var socket = io.connect('http://' + document.domain + ':' + location.port + '/mon');
@@ -37,8 +53,9 @@
             //data.push(dataSeries);
         });
         socket.on('data', function(msg) {
-            console.log('data: ' + x + ' ' + msg.temp);
-            dataPoints.push({x:x, y:msg.temp});
+            console.log('data: ' + x + ' ' + msg.tempBMC + msg.tempNODE1);
+            dataPointsBMC.push({x:x, y:msg.tempBMC});
+            dataPointsNODE1.push({x:x, y:msg.tempNODE1});
             x++;
             updateChart();
         });
@@ -47,31 +64,28 @@
             console.log("sending: " + message.data);
             socket.emit('request', message);
         };
-        $('#cmd_send').click(function(ev){
-            ev.preventDefault();
-            var cmd = $('#cmd_value').val() + '\r\n';
-            sendMessage({'data' : cmd});
-            $('#cmd_value').val("");
-        });
-        $('#clear').click(function(){
-            received.empty();
-        });
 
         var updateChart = function () {
-            if (dataPoints.length > 100)
+            if (dataPointsBMC.length > 100)
             {
-                dataPoints.shift();
+                dataPointsBMC.shift();
             }
-            chart.render();
+            if (dataPointsNODE1.length > 100)
+            {
+                dataPointsNODE1.shift();
+            }
+            chartBMC.render();
+            chartNODE1.render();
         }
 
         //updateChart();
 
-        setInterval(function(){sendMessage("")}, 5000);
+        //setInterval(function(){sendMessage("")}, 5000);
 
     });
 </script>
 
-<div id="chartContainer" style="height: 300px; width: 100%;"></div>
+<div id="chartContainerBMC" style="height: 300px; width: 100%;"></div><br>
+<div id="chartContainerNODE1" style="height: 300px; width: 100%;"></div>
 
 {% endblock %}

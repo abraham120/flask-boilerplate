@@ -54,9 +54,7 @@
           </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav mr-auto">
-            <li {% if request.endpoint == 'node' and node_number == '1' %} class="nav-item active" {% endif %}><a class="nav-link" href="{{ url_for('node',node_number=1) }}">Node 1</a></li>
-            <li {% if request.endpoint == 'node' and node_number == '2' %} class="nav-item active" {% endif %}><a class="nav-link" href="{{ url_for('node',node_number=2) }}">Node 2</a></li>
-            <li {% if request.endpoint == 'node' and node_number == '3' %} class="nav-item active" {% endif %}><a class="nav-link" href="{{ url_for('node',node_number=3) }}">BMC</a></li>
+            <li {% if request.endpoint == 'sensors' %} class="nav-item active" {% endif %}><a class="nav-link" href="{{ url_for('sensors') }}">Sensors</a></li>
             <li {% if request.endpoint == 'tempmon' %} class="nav-item active" {% endif %}><a class="nav-link" href="{{ url_for('tempmon') }}">TempMon</a></li>
             <li {% if request.endpoint == 'fanctrl' %} class="nav-item active" {% endif %}><a class="nav-link" href="{{ url_for('fanctrl') }}">FanControl</a></li>
             <li {% if request.endpoint == 'power' %} class="nav-item active" {% endif %}><a class="nav-link" href="{{ url_for('power') }}">Power</a></li>

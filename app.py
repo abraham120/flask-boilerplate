@@ -30,6 +30,7 @@ import pandas
 
 input_queue = [multiprocessing.Queue(), multiprocessing.Queue()]
 output_queue = [multiprocessing.Queue(), multiprocessing.Queue()]
+tempMonRunning = 0
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -127,7 +128,33 @@ def setFanRpm(fanid,rpm):
 
 @app.route('/')
 def home():
-    return render_template('pages/placeholder.home.html', node_name='Node 1')
+    return sensors()
+
+@app.route('/sensors')
+def sensors():
+    sensor_node1 = []
+    sensor_tmp = getSensorData('1')
+
+    for data_str in sensor_tmp :
+    	sensor_dic = {}
+        idxname = data_str.split(':')
+        if len(idxname) == 2:
+       	    sensor_dic['value'] = idxname[1]
+        else:
+            sensor_dic['value'] = ''
+        idxname = idxname[0]
+        if len(idxname) == 0:
+            break
+        if idxname[0] == '[':
+            sensor_dic['index'] = idxname.split(']')[0][1:]
+            sensor_dic['name'] = idxname.split(']')[1][1:]
+        else:
+            sensor_dic['index'] = ''
+            sensor_dic['name'] = idxname
+        sensor_node1.append(sensor_dic)
+            
+    return render_template('pages/placeholder.sensors.html', sensor_node1=sensor_node1)
+
 
 @app.route('/node/<node_number>')
 def node(node_number):
@@ -310,6 +337,7 @@ def fanmode_toggle(message):
 @socketio.on('connect', namespace='/mon')
 def connect():
     global db_engine
+    global tempMonRunning
     print("mon-ws: connected")
 # connect to db
     if db_engine is None:
@@ -319,17 +347,21 @@ def connect():
     db_data = pandas.read_sql('select * from test order by time desc limit 100', db_engine)
 # send all of data
     for i in range(db_data.index.max()+1):
-        socketio.emit("data", {'temp':db_data.temp[db_data.index.max()-i]}, namespace='/mon')
+        socketio.emit("data", {'tempBMC':db_data.tempbmc[db_data.index.max()-i],'tempNODE1':db_data.tempnode1[db_data.index.max()-i]}, namespace='/mon')
+    tempMonRunning = tempMonRunning + 1 
+    if tempMonRunning == 1:
+        Thread(target=broadcastTemp).start()
 
 @socketio.on('disconnect', namespace='/mon')
 def disconnect():
+    global tempMonRunning
     print("mon-ws: disconnected")
+    if tempMonRunning > 0:
+        tempMonRunning = tempMonRunning - 1
 
 @socketio.on('request', namespace='/mon')
 def request_mon(message):
     print("mon-ws: request")
-    db_data = pandas.read_sql('select * from test order by time desc limit 1', db_engine)
-    socketio.emit("data", {'temp':db_data.temp[0]}, namespace='/mon')
 
 @socketio.on('connect', namespace='/ws')
 def connect():
@@ -343,6 +375,13 @@ def disconnect():
 # Launch.
 #----------------------------------------------------------------------------#
 
+def broadcastTemp():
+    global tempMonRunning
+    while tempMonRunning > 0:
+        time.sleep(5)
+        db_data = pandas.read_sql('select * from test order by time desc limit 1', db_engine)
+        socketio.emit("data", {'tempBMC':db_data.tempbmc[0],'tempNODE1':db_data.tempnode1[0]}, namespace='/mon')
+        
 def checkQueue():
     global threadRunning
     while threadRunning:
