@@ -31,6 +31,7 @@ import pandas
 input_queue = [multiprocessing.Queue(), multiprocessing.Queue()]
 output_queue = [multiprocessing.Queue(), multiprocessing.Queue()]
 tempMonRunning = 0
+fanRunning = 0
 
 app = Flask(__name__)
 app.config.from_object('config')
@@ -130,10 +131,9 @@ def setFanRpm(fanid,rpm):
 def home():
     return sensors()
 
-@app.route('/sensors')
-def sensors():
-    sensor_node1 = []
-    sensor_tmp = getSensorData('1')
+def parseSensorList(node):
+    sensor_list = []
+    sensor_tmp = getSensorData(node)
 
     for data_str in sensor_tmp :
     	sensor_dic = {}
@@ -151,9 +151,22 @@ def sensors():
         else:
             sensor_dic['index'] = ''
             sensor_dic['name'] = idxname
-        sensor_node1.append(sensor_dic)
+        sensor_list.append(sensor_dic)
+
+    return sensor_list
             
-    return render_template('pages/placeholder.sensors.html', sensor_node1=sensor_node1)
+
+@app.route('/sensors')
+def sensors():
+    sensor_node1 = parseSensorList('1')
+    sensor_node2 = parseSensorList('2')
+    sensor_bmc = parseSensorList('3')
+
+    status = runPowerTool(['status'])
+    status1 = status.split('\n')[0].split(':')[1].strip()
+    status2 = status.split('\n')[1].split(':')[1].strip()
+
+    return render_template('pages/placeholder.sensors.html', sensor_node1=sensor_node1, sensor_node2=sensor_node2, sensor_bmc=sensor_bmc, status1=status1, status2=status2)
 
 
 @app.route('/node/<node_number>')
@@ -185,14 +198,17 @@ def power():
             runPowerTool(['forceoff'])
 
     status = runPowerTool(['status'])
-    status1 = status.split('\n')[0].split(':')[1]
-    status2 = status.split('\n')[1].split(':')[1]
+    status1 = status.split('\n')[0].split(':')[1].strip()
+    status2 = status.split('\n')[1].split(':')[1].strip()
 
     return render_template('pages/placeholder.power.html', status1=status1, status2=status2)
 
 @app.route('/tempmon')
 def tempmon():
-    return render_template('pages/placeholder.temp.html')
+    status = runPowerTool(['status'])
+    status1 = status.split('\n')[0].split(':')[1].strip()
+    status2 = status.split('\n')[1].split(':')[1].strip()
+    return render_template('pages/placeholder.temp.html', status1=status1, status2=status2)
 
 @app.route('/fanctrl')
 def fanctrl():
@@ -200,7 +216,10 @@ def fanctrl():
 
 @app.route('/terminal')
 def terminal():
-    return render_template('pages/placeholder.console.html')
+    status = runPowerTool(['status'])
+    status1 = status.split('\n')[0].split(':')[1].strip()
+    status2 = status.split('\n')[1].split(':')[1].strip()
+    return render_template('pages/placeholder.console.html', status1=status1, status2=status2)
 
 
 @app.route('/about')
@@ -293,6 +312,8 @@ def term_input(message):
 
 @socketio.on('connect', namespace='/fan')
 def connect():
+    global fanRunning
+
     print("fan-ws: connected")
 # send all of data
     for i in range(6):
@@ -306,22 +327,21 @@ def connect():
     else:
         mode = 'off'
     socketio.emit("fanmode", {'mode':mode}, namespace='/fan')
+    fanRunning += 1
+    if fanRunning == 1:
+        Thread(target=broadcastFanRpm).start()
 
 @socketio.on('disconnect', namespace='/fan')
 def disconnect():
+    global fanRunning
+    if fanRunning > 0: 
+        fanRunning -= 1
     print("fan-ws: disconnected")
 
 @socketio.on('request', namespace='/fan')
 def request_mon(message):
     print("fan-ws: request")
     setFanPwm(message['fanid'], message['pwm'])
-
-@socketio.on('rpmRequest', namespace='/fan')
-def request_mon(message):
-    print("fan-ws: rpm request")
-    for i in range(6):
-        rpm = getFanRpm(i)
-        socketio.emit("rpmData", {'fanid':i+1,'rpm':rpm}, namespace='/fan')
 
 @socketio.on('fanmode_toggle', namespace='/fan')
 def fanmode_toggle(message):
@@ -347,7 +367,7 @@ def connect():
     db_data = pandas.read_sql('select * from test order by time desc limit 100', db_engine)
 # send all of data
     for i in range(db_data.index.max()+1):
-        socketio.emit("data", {'tempBMC':db_data.tempbmc[db_data.index.max()-i],'tempNODE1':db_data.tempnode1[db_data.index.max()-i]}, namespace='/mon')
+        socketio.emit("data", {'tempBMC':db_data.tempbmc[db_data.index.max()-i],'tempNODE1':db_data.tempnode1[db_data.index.max()-i],'tempNODE2':db_data.tempnode2[db_data.index.max()-i]}, namespace='/mon')
     tempMonRunning = tempMonRunning + 1 
     if tempMonRunning == 1:
         Thread(target=broadcastTemp).start()
@@ -375,6 +395,14 @@ def disconnect():
 # Launch.
 #----------------------------------------------------------------------------#
 
+def broadcastFanRpm():
+    global fanRunning
+    while fanRunning > 0:
+        time.sleep(1)
+        for i in range(6):
+	    rpm = getFanRpm(i)
+	    socketio.emit("rpmData", {'fanid':i+1,'rpm':rpm}, namespace='/fan')
+        
 def broadcastTemp():
     global tempMonRunning
     while tempMonRunning > 0:

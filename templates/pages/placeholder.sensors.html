@@ -3,17 +3,22 @@
 {% block content %}
 
 <ul class="nav nav-tabs" role="tablist">
+    {% if status1 != 'nc' %}
     <li class="nav-item">
         <a class="nav-link active" id="node1-tab" data-toggle="tab" href="#sensor1" role="tab" area-controls="sensor1" area-selected="true">Node 1</a>
     </li>
+    {% endif %}
+    {% if status2 != 'nc' %}
     <li class="nav-item">
         <a class="nav-link" id="node2-tab" data-toggle="tab" href="#sensor2" role="tab" area-controls="sensor2" area-selected="false">Node 2</a>
     </li>
+    {% endif %}
     <li class="nav-item">
         <a class="nav-link" id="bmc-tab" data-toggle="tab" href="#bmc" role="tab" area-controls="bmc" area-selected="false">BMC</a>
     </li>
 </ul>
 <div class="tab-content" id="nodeTabContent">
+    {% if status1 != 'nc' %}
     <div id="sensor1" class="tab-pane fade show active" role="tabpanel" aria-labelledby="node1-tab">
     <table class="table table-sm">
         <thead>
@@ -34,6 +39,8 @@
         </tbody>
     </table>
     </div>
+    {% endif %}
+    {% if status2 != 'nc' %}
     <div id="sensor2" class="tab-pane fade" role="tabpanel" aria-labelledby="node2-tab">
     <table class="table table-sm">
         <thead>
@@ -54,6 +61,7 @@
         </tbody>
     </table>
     </div>
+    {% endif %}
     <div id="bmc" class="tab-pane fade" role="tabpanel" aria-labelledby="bmc-tab">
     <table class="table table-sm">
         <thead>

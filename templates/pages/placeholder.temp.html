@@ -11,9 +11,11 @@
         var x = 0, y = 0;
         var dataBMC = [];
         var dataNODE1 = [];
+        var dataNODE2 = [];
         var dataSeries = { type: "line" };
         var dataPointsBMC = [];
         var dataPointsNODE1 = [];
+        var dataPointsNODE2 = [];
         var chartBMC = new CanvasJS.Chart("chartContainerBMC", {
             title : {
                 text: "Temperature Monitor (BMC)"
@@ -42,6 +44,20 @@
                 dataPoints: dataPointsNODE1
             }]
         });
+        var chartNODE2 = new CanvasJS.Chart("chartContainerNODE2", {
+            title : {
+                text: "Temperature Monitor (NODE2)"
+            },
+            axisY: {
+                includeZero: false
+            },
+            animationEnabled: true,
+            data: [{
+                type: "line",
+                markerSize: 0,
+                dataPoints: dataPointsNODE2
+            }]
+        });
         var socket = io.connect('http://' + document.domain + ':' + location.port + '/mon');
         //var socket = new WebSocket("ws://" + document.localtion.host + "/ws");
         //socket.onopen = function(){
@@ -53,9 +69,10 @@
             //data.push(dataSeries);
         });
         socket.on('data', function(msg) {
-            console.log('data: ' + x + ' ' + msg.tempBMC + msg.tempNODE1);
+            //console.log('data: ' + x + ' ' + msg.tempBMC + msg.tempNODE1 + msg.tempNODE2);
             dataPointsBMC.push({x:x, y:msg.tempBMC});
             dataPointsNODE1.push({x:x, y:msg.tempNODE1});
+            dataPointsNODE2.push({x:x, y:msg.tempNODE2});
             x++;
             updateChart();
         });
@@ -74,8 +91,13 @@
             {
                 dataPointsNODE1.shift();
             }
+            if (dataPointsNODE2.length > 100)
+            {
+                dataPointsNODE2.shift();
+            }
             chartBMC.render();
             chartNODE1.render();
+            chartNODE2.render();
         }
 
         //updateChart();
@@ -86,6 +108,7 @@
 </script>
 
 <div id="chartContainerBMC" style="height: 300px; width: 100%;"></div><br>
-<div id="chartContainerNODE1" style="height: 300px; width: 100%;"></div>
+<div id="chartContainerNODE1" style="height: 300px; width: 100%; {% if status1 == 'nc' %} display:none; {% endif %}"></div>
+<div id="chartContainerNODE2" style="height: 300px; width: 100%; {% if status2 == 'nc' %} display:none; {% endif %}"></div>
 
 {% endblock %}
