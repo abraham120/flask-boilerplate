@@ -34,7 +34,7 @@
     <div id="Console1" class="tab-pane fade show active" role="tabpanel" aria-labelledby="node1-tab"></div>
 {% endif %}
 {% if status2 != 'nc' %}
-    <div id="Console2" class="tab-pane fade" role="tabpanel" aria-labelledby="node2-tab"></div>
+    <div id="Console2" class="tab-pane fade {% if status1 == 'nc' %} show active {% endif %}" role="tabpanel" aria-labelledby="node2-tab"></div>
 </div>
 {% endif %}
 

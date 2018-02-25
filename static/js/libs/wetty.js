@@ -34,9 +34,12 @@ socket.on('connect', function() {
     lib.init(function() {
         hterm.defaultStorage = new lib.Storage.Local();
         for (i = 0; i < 2; i++) {
+            cons = document.getElementById('Console'+(i+1));
+            if (cons == null) continue;
+
             term[i] = new hterm.Terminal();
             window.term[i] = term[i];
-            term[i].decorate(document.getElementById('Console'+(i+1)));
+            term[i].decorate(cons);
 
             term[i].setCursorPosition(0, 0);
             term[i].setCursorVisible(true);
@@ -71,9 +74,9 @@ socket.on('output', function(data) {
 
 socket.on('setting', function(data) {
     btn = document.getElementById('set_node1');
-    btn.textContent = data.node1.toUpperCase();
+    if (btn) btn.textContent = data.node1.toUpperCase();
     btn = document.getElementById('set_node2');
-    btn.textContent = data.node2.toUpperCase();
+    if (btn) btn.textContent = data.node2.toUpperCase();
 }); 
 
 
